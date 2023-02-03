@@ -9,10 +9,10 @@ describe('Faucet', function () {
   // and reset Hardhat Network to that snapshot in every test.
   async function deployContractAndSetVariables() {
     const Faucet = await ethers.getContractFactory('Faucet');
-    const faucet = await Faucet.deploy({ value: ethers.utils.parseEther("1") });
+    const faucet = await Faucet.deploy();
 
-    //fill the faucet
-
+    //const faucet = await Faucet.deploy({ value: ethers.utils.parseEther("1") });
+    //how do I fill the faucet?
 
     const [owner, otherUser] = await ethers.getSigners();
 
@@ -55,6 +55,14 @@ describe('Faucet', function () {
     expect(owner.balance).to.equal(ownerBalance + faucetBalance);
   });
 
+  // does this fail because there are no funds in the faucet to send?
+  it('should allow withdrawals <= 0.1 eth', async function () {
+    const { faucet, amountOk } = await loadFixture(deployContractAndSetVariables);
+
+    console.log(await faucet.withdraw(amountOk));
+    await expect(faucet.withdraw(amountOk)).to.equal(Math.min(amountOk, faucet.balance));
+  });
+  
   it('only owner can call destroyFaucet', async function () {
     const { faucet, owner, otherUser } = await loadFixture(deployContractAndSetVariables);
 
@@ -71,12 +79,4 @@ describe('Faucet', function () {
     expect(await faucet.destroyFaucet());
     expect(await owner.provider.getCode(faucetAddress)).to.equal("0x");
   });
-
-  //does this fail because there are no funds in the faucet to send?
-  // it('should only withdrawals <= 0.1 eth', async function () {
-  //   const { faucet, amountOk } = await loadFixture(deployContractAndSetVariables);
-
-  //   console.log(await faucet.withdraw(amountOk));
-  //   await expect(faucet.withdraw(amountOk)).to.equal(amountOk);
-  // });
 });
