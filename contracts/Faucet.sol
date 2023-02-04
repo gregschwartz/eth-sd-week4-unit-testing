@@ -7,6 +7,10 @@ contract Faucet {
   constructor() payable {
     owner = payable(msg.sender);
   }
+
+  function balance() public view returns(uint) {
+    return address(this).balance;
+  }
   
   function withdraw(uint _amount) payable public {
     // users can only withdraw .1 ETH at a time, feel free to change this!

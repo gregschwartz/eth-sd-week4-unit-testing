@@ -9,10 +9,7 @@ describe('Faucet', function () {
   // and reset Hardhat Network to that snapshot in every test.
   async function deployContractAndSetVariables() {
     const Faucet = await ethers.getContractFactory('Faucet');
-    const faucet = await Faucet.deploy();
-
-    //const faucet = await Faucet.deploy({ value: ethers.utils.parseEther("1") });
-    //how do I fill the faucet?
+    const faucet = await Faucet.deploy({ value: ethers.utils.parseEther("1") });
 
     const [owner, otherUser] = await ethers.getSigners();
 
@@ -45,22 +42,30 @@ describe('Faucet', function () {
   it('everything is returned by withdrawAll', async function () {
     const { faucet, owner } = await loadFixture(deployContractAndSetVariables);
 
-    // const ownerBalance = owner.balance;
-    const faucetBalance = faucet.balance;
-    // expect(faucetBalance).to.greaterThanOrEqual(0, "Faucet balance is 0");
-    // console.log("faucet balance",faucetBalance, "owner balance", ownerBalance);
-    
+    const oldOwnerBalance = await owner.getBalance();
+    const oldFaucetBalance = await faucet.balance();
+    expect(oldFaucetBalance).to.greaterThanOrEqual(0, "Faucet balance is 0");
+
     await faucet.connect(owner).withdrawAll();
-    expect(owner.balance).to.equal(faucetBalance); //+ ownerBalance);
+
+    const newOwnerBalance = await owner.getBalance();
+    const newFaucetBalance = await faucet.balance();
+    expect(newFaucetBalance).to.equal(0, "Faucet balance was not fully withdrawn");
+    expect(newOwnerBalance).to.greaterThan(oldOwnerBalance, "Owner's balance was not increased");
+    
+    //needs to take into account gas
+    expect(newOwnerBalance).to.lessThanOrEqual(oldFaucetBalance + oldOwnerBalance, "Owner's balance is way off");
   });
 
-  // does this fail because there are no funds in the faucet to send?
-  // it('should allow withdrawals <= 0.1 eth', async function () {
-  //   const { faucet, amountOk } = await loadFixture(deployContractAndSetVariables);
+  it('should allow withdrawals <= 0.1 eth', async function () {
+    const { faucet, owner, amountOk } = await loadFixture(deployContractAndSetVariables);
+    const oldOwnerBalance = await owner.getBalance();
 
-  //   console.log(await faucet.withdraw(amountOk));
-  //   await expect(faucet.withdraw(amountOk)).to.equal(Math.min(amountOk, faucet.balance));
-  // });
+    await faucet.withdraw(amountOk);
+
+    const newOwnerBalance = await owner.getBalance();
+    expect(newOwnerBalance).to.greaterThan(oldOwnerBalance, "Owner's balance was not increased");
+  });
   
   it('only owner can call destroyFaucet', async function () {
     const { faucet, owner, otherUser } = await loadFixture(deployContractAndSetVariables);
